@@ -98,20 +98,29 @@
 			</control>
 			<!--放大镜搜索按钮group-->
 			<control type="group">
-				<top>65</top>
+				<!--test, 65改成86-->
+				<top>86</top>
+				<!--蓝色的小圆贴片-->
 				<control type="image">
-					<left>333</left>
-					<top>1</top>
-					<width>118</width>
-					<height>118</height>
+					<!--test, left从333改成350-->
+					<left>350</left>
+					<!--test, top从1改成0-->
+					<!--<top>0</top>-->
+					<!--test, 宽高都从118改成84-->
+					<width>84</width>
+					<height>84</height>
+					<!--test, 增加缩放-->
+					<aspectratio>scale</aspectratio>
 					<texture colordiffuse="FF12A0C7">globalsearch-roundbutton.png</texture>
+					<!--id=990为隐藏的搜索按钮-->
 					<visible>Control.HasFocus(990)</visible>
 				</control>
 				<!--搜索放大镜BUTTON 1, 没有焦点时的image--> 
 				<!--colordiffuse为颜色渲染值，AARRGGBB-->
 				<control type="image">
 					<left>372</left>
-					<top>40</top>
+					<!--test, top从40改成22-->
+					<top>22</top>
 					<width>40</width>
 					<height>40</height>
 					<texture colordiffuse="FFA0A0A0">globalsearch-search.png</texture>
@@ -121,7 +130,8 @@
 				<!--有两个放大镜的目的，是焦点获得后显示不同的颜色和背景？--> 
 				<control type="image">
 					<left>372</left>
-					<top>40</top>
+					<!--test, top从40改成22-->
+					<top>22</top>
 					<width>40</width>
 					<height>40</height>
 					<texture colordiffuse="FFF0F0F0">globalsearch-search.png</texture>
@@ -159,9 +169,12 @@
 				<!--这个BUTTON实际是一个隐藏的长条！-->
 				<!--BUTTON的高度下沿为185（65+120）-->
 				<control type="button" id="990">
-					<left>77</left>
+					<!--test, left从77改成0-->
+					<left>0</left>
 					<top>0</top>
-					<width>500</width>
+					<!--宽从500改成462-->
+					<width>462</width>
+					<!--高从120改成84-->
 					<height>120</height>
 					<label>32299</label>
 					<align>left</align>
@@ -213,6 +226,7 @@
 					<ondown>SetFocus(9000,0,absolute)</ondown>
 					<onleft>50</onleft>
 					<onright>50</onright>
+					<!--click触发容器的系统内置NextViewMode函数-->
 					<onclick>Container.NextViewMode</onclick>
 				</control>
 				<!--左面板蓝色的”媒体“LABEL-->
@@ -329,14 +343,18 @@
 					</focusedlayout>
 				</control>
 			</control>
-			<!--这是是中间的内容panel。默认视图是biglist，有左中右三块PANEL-->
+			<!--这是内容panel, 视图类型是图标。图标模式下，只有左右两块PANEL-->
 			<!--后面有一个跟这个大panel control平级的list control，那数据到底是填充在哪个control里呢？-->
 			<!--这个是viewtype为icon模式的显示-->
 			<control type="panel" id="50">
 				<left>512</left>
 				<top>192</top>
-				<width>1500</width>
+				<!--test, 宽度从1500改成1408，改成1435试试？-->
+				<!--一个item宽度为285. 4个宽度=1140. 5个宽度=1425. 果然容纳不下了。-->
+				<width>1425</width>
+				<!--一个item高度为360，刚刚好放两个？？？-->
 				<height>720</height>
+				<!--用户遥控器左方向键移动出当前控件，移动到ID=9000的控件。支持移动到group，则焦点到之前定位的group内控件-->
 				<onleft>9000</onleft>
 				<viewtype label="536">icon</viewtype>
 				<preloaditems>4</preloaditems>
@@ -349,6 +367,7 @@
 						<top>-1</top>
 						<width>256</width>
 						<height>362</height>
+						<!--fallback是item没有图像时的内置默认图片-->
 						<texture fallback="DefaultVideo.png" background="true">$INFO[ListItem.Art(poster)]</texture>
 						<bordertexture border="20">globalsearch-shadow.png</bordertexture>
 						<bordersize>20</bordersize>
@@ -357,10 +376,17 @@
 					</control>
 					<!--下面的视频名字控件的蒙版，奇怪，非完全重合。宽度大于，高度小于。-->
 					<control type="image">
+						<!--test, 改成和下面的名称大小完全一样试试。异常：蒙版的宽度是要和poster一样而不是和文字一样。-->
+						<!--
 						<left>5</left>
 						<top>275</top>
 						<width>216</width>
 						<height>66</height>
+						-->
+						<left>15</left>
+						<top>270</top>
+						<width>192</width>
+						<height>70</height>						
 						<texture colordiffuse="B0FFFFFF">globalsearch-black.png</texture>
 					</control>
 					<!--视频的名称-->
@@ -374,32 +400,7 @@
 						<aligny>center</aligny>
 						<label>$INFO[ListItem.Label]</label>
 					</control>
-					<!--这里开始删除. 删除了貌似没有影响-->
-					<!--评分信息-->
-					<control type="group">
-						<left>170</left>
-						<top>20</top>
-						<visible>!String.IsEmpty(ListItem.UserRating)</visible>
-						<!--这个小圆点什么用处？-->
-						<control type="image">
-							<left>8</left>
-							<top>2</top>
-							<width>36</width>
-							<height>36</height>
-							<aspectratio>keep</aspectratio>
-							<texture colordiffuse="FF12A0C7">globalsearch-list-circle.png</texture>
-						</control>
-						<!--评分值-->
-						<control type="label">
-							<top>6</top>
-							<align>center</align>
-							<width>50</width>
-							<height>32</height>
-							<textcolor>FFF0F0F0</textcolor>
-							<font>font20_title</font>
-							<label>$INFO[ListItem.UserRating]</label>
-						</control>
-					</control>					
+					<!--这里开始删除1. 删除了貌似没有影响-->
 				</itemlayout>
 				<itemlayout height="360" width="470" condition="Container.Content(episodes) | Container.Content(musicvideos)">
 					<control type="image">
@@ -615,29 +616,10 @@
 							<aligny>center</aligny>
 							<label>$INFO[ListItem.Label]</label>
 						</control>
-						<control type="group">
-							<left>170</left>
-							<top>20</top>
-							<visible>!String.IsEmpty(ListItem.UserRating)</visible>
-							<control type="image">
-								<left>8</left>
-								<top>2</top>
-								<width>36</width>
-								<height>36</height>
-								<aspectratio>keep</aspectratio>
-								<texture colordiffuse="FF12A0C7">globalsearch-list-circle.png</texture>
-							</control>
-							<control type="label">
-								<top>6</top>
-								<align>center</align>
-								<width>50</width>
-								<height>32</height>
-								<textcolor>FFF0F0F0</textcolor>
-								<font>font20_title</font>
-								<label>$INFO[ListItem.UserRating]</label>
-							</control>
-						</control>
+						<!--这里开始删除2-->
+
 					</control>
+					<!--注释1
 					<control type="group">
 						<top>15</top>
 						<animation type="Focus">
@@ -652,6 +634,7 @@
 							<texture border="8" colordiffuse="FF12A0C7">globalsearch-thumbnail-focus.png</texture>
 						</control>
 					</control>
+					-->
 					<control type="image">
 						<top>15</top>
 						<left>190</left>
@@ -1625,6 +1608,7 @@
 				<left>512</left>
 				<!--这个高度貌似是图标模式的高度，那如果是列表模式呢？高度怎么自动调整？-->
 				<top>920</top>
+				<!--VisibleChange基本等同visible，即控件可见时显示动画-->
 				<animation effect="fade" time="200">VisibleChange</animation>
 				<!--显示鼠标rollover item的视频编码信息集-->
 				<!--Container.ListItem为当前鼠标rollover元素-->
@@ -1632,8 +1616,14 @@
 					<orientation>horizontal</orientation>
 					<left>0</left>
 					<itemgap>6</itemgap>
+					<!--test, 宽度从1366改成700-->
 					<width>1366</width>
 					<align>right</align>
+					<!--Conditional，当控件的condition属性满足时显示，这里即Control.IsVisible(51)-->
+					<!--列表容器（biglist）的id=51-->
+					<!--所以这个动画即是处理这个group的坐标平移？是的！-->
+					<!--51控件显示（biglist）时，平移是向左（较多）向下（较少）。所以是X轴退420，Y轴进85？-->
+					<!--start=0,0，就是基于当前位置开始平移？但是看文档介绍，start坐标是右边和下边，为什么不是左边和上边？？？-->
 					<animation effect="slide" start ="0,0" end="-420,85" condition="Control.IsVisible(51)">Conditional</animation>
 					<!--视频编码类型（H.265）-->
 					<control type="image">
@@ -1686,7 +1676,8 @@
 					<align>right</align>
 					<right>20</right>
 					<height>200</height>
-					<width>900</width>
+					<!--test, 宽度900改成420，只覆盖最右边面板。-->
+					<width>420</width>
 					<font>font_clock</font>
 					<shadowcolor>22000000</shadowcolor>
 					<label>$INFO[System.Time]</label>
@@ -1700,7 +1691,8 @@
 				<align>right</align>
 				<top>1030</top>
 				<right>24</right>
-				<width>1200</width>
+				<!--test, 宽度1200改成150-->
+				<width>150</width>
 				<itemgap>10</itemgap>
 				<animation effect="fade" time="200">VisibleChange</animation>
 				<!--右面板右下角的页码显示(4/29之类)--> 
