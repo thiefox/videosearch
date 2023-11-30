@@ -1,11 +1,16 @@
 import datetime
 import json
 import operator
+
+import threading
+import _thread
+
 from .defs import *
 
 def log(txt):
     message = '%s: %s' % (ADDONID, txt)
-    xbmc.log(msg=message, level=xbmc.LOGDEBUG)
+    #xbmc.log(msg=message, level=xbmc.LOGDEBUG)
+    xbmc.log(msg=message, level=xbmc.LOGINFO)
 
 #初始化模板是某个.xml文件
 #每个从xbmcgui.WindowXML继承的窗口都有一个list数据container
@@ -22,6 +27,7 @@ class GUI(xbmcgui.WindowXML):
         self.clearList()    #已有list数据清除（存在的话）
         self._hide_controls()
         log('script version %s started' % ADDONVERSION)
+        log('video search window onInit...')
         self.nextsearch = False
         self.navback = False
         #翻页历史还是操作历史
@@ -50,7 +56,8 @@ class GUI(xbmcgui.WindowXML):
             self._fetch_items()
     #把三个主要的控件（搜索BUTTON, 搜索结果分类GROUP，无结果LABEL）都设置为不可见
     def _hide_controls(self):
-        for cid in [SEARCHBUTTON, NORESULTS]:
+        #for cid in [SEARCHBUTTON, NORESULTS]:
+        for cid in [INPUTTEXT, NORESULTS]:
             self.getControl(cid).setVisible(False)
     #从参数获取categories的enable状态
     def _parse_argv(self):
@@ -480,7 +487,15 @@ class GUI(xbmcgui.WindowXML):
     #字符串转义标准化
     def _clean_string(self, string):
         return string.replace('(', '[(]').replace(')', '[)]').replace('+', '[+]')
-    #key都是二级关联属性？比如艺人的专辑，电视剧的季
+    #key都是二级关联属性。比如艺人的专辑，电视剧的季。
+    #get_allitems是这样的二级数据请求：
+    #1. 电视剧的所有季
+    #2. 季的所有集
+    #3. 艺人的所有专辑
+    #4. 专辑的所有歌曲
+    #5. 演员的所有电影
+    #6. 演员的所有电视剧
+    #7. 导演的所有电影
     def _get_allitems(self, key, listitem):
         if key == 'tvshowseasons':
             search = listitem.getVideoInfoTag().getDbId()
@@ -579,13 +594,16 @@ class GUI(xbmcgui.WindowXML):
                 #难道系统的player还是会来获取self.Player的数据？
                 xbmc.executeJSONRPC('{"jsonrpc":"2.0", "method":"Player.Open", "params":{"item":{"%s":%d}}, "id":1}' % (key, int(value)))
 
-    #搜索无结果后的处理？
+    #搜索无结果后的处理？应该是一次数据fetch完成后的处理。根据fetch结果决定后续的动作。
     def _check_focus(self):
         self.getControl(SEARCHCATEGORY).setVisible(False)   #搜索的分类结果控件隐藏
-        self.getControl(SEARCHBUTTON).setVisible(True)      #搜索BUTTON显示
+        #self.getControl(SEARCHBUTTON).setVisible(True)      #搜索BUTTON显示
+        self.getControl(INPUTTEXT).setVisible(True)
         if self.focusset == 'false':                        #所以focusset==false，就是搜索没有结果？
             self.getControl(NORESULTS).setVisible(True)     #搜索无结果LABEL显示
-            self.setFocus(self.getControl(SEARCHBUTTON))    #焦点放在搜索BUTTON上
+            #self.setFocus(self.getControl(SEARCHBUTTON))    #焦点放在搜索BUTTON上
+            self.setFocus(self.getControl(INPUTTEXT))
+            return      #测试为什么还是会弹出输入框
             dialog = xbmcgui.Dialog()
             #284="No results found"
             #LANGUAGE(32298)="Search again?"
@@ -676,7 +694,7 @@ class GUI(xbmcgui.WindowXML):
                         self._play_item('albumid', dbid)
                 elif functions[selection] == 'favourite':       #加入收藏
                     self._add_favourite(listitem)
-                else:           #这个是什么动作？
+                else:           #剩下的动作只有一种，获取播放虚体的二级实体（如电视剧的所有季，演员的所有电影...）
                     self._get_allitems(functions[selection], listitem)
     #调用系统的dialog弹出显示某个item的详情
     def _show_info(self, listitem):
@@ -733,10 +751,15 @@ class GUI(xbmcgui.WindowXML):
             self._get_items(cat, search)        #从系统检索数据。所以每次回退都是重新从kodi的db fetch数据
         self.navback = False
 
+    #由edit控件启动的数据刷新
+    def _data_refresh(self) :
+        return
+
     #开始新搜索
     def _new_search(self):
-        #32101="Enter search string"（“输入搜索字符串”）
         #调用系统的输入对话框
+        log('_new_search calling...')
+        #32101="Enter search string"（“输入搜索字符串”）
         keyboard = xbmc.Keyboard('', LANGUAGE(32101), False)
         keyboard.doModal()
         if(keyboard.isConfirmed()):
@@ -746,9 +769,29 @@ class GUI(xbmcgui.WindowXML):
             self.clearList()        #数据清除
             self.onInit()           #数据查询和加载
 
+    #从编辑框启动的新搜索
+    def _new_search_ex(self) :
+        self.searchstring = self.getControl(INPUTTEXT).getText()
+        log('_new_search_ex calling, text={}'.format(self.searchstring))
+        #txt = self.getControl(LABEL_MEDIA).getLabel() + 'a'
+        #self.getControl(LABEL_MEDIA).setLabel(txt)
+        self.menu.reset()
+        self.oldfocus = 0
+        self.clearList()
+        self.onInit()
+        return
+
+    def _thread_search(self) :
+        th1 = threading.Thread(target=GUI._new_search_ex, args=(self,))
+        th1.start()
+        th1.join()
+        return
+
     #CLICK事件处理？
     def onClick(self, controlId):
+        log('onClick event, Control ID={}'.format(controlId))
         if controlId == self.getCurrentContainerId():       #数据容器的click事件
+            log('Container be clicked')
             self.containerposition = self.getCurrentListPosition()      #容器位置？
             listitem = self.getListItem(self.getCurrentListPosition())  #取得容器位置的item
             media = ''
@@ -795,17 +838,24 @@ class GUI(xbmcgui.WindowXML):
             elif media == 'directors':                                  #导演虚体
                 self._get_allitems('directormovies', listitem)
         elif controlId == MENU:         #菜单的click事件(要看一下这个是什么菜单？)
+            log('Menu be clicked')
             item = self.menu.getSelectedItem().getProperty('type')
             content = self.menu.getSelectedItem().getProperty('content')
             self.menuposition = self.menu.getSelectedPosition()
             self.menutype = self.menu.getSelectedItem().getProperty('type')
             self._update_list(item, content)
-        elif controlId == SEARCHBUTTON:         #搜索按钮的click事件
-            self._new_search()                  #启动新搜索
+        #elif controlId == SEARCHBUTTON:         #搜索按钮的click事件
+        #    self._new_search()                  #启动新搜索
+        elif controlId == INPUTTEXT :
+            log('Input Edit be clicked')
+            self._thread_search()
+            
 
     #这个是被系统调用，在gui.py没有找到对这个函数的调用
     #返回TRUE为已经处理，返回FALSE由KODI来处理。
+    #所以action可以理解为遥控器上的动作？
     def onAction(self, action):
+        log('onAction event, actionID={}'.format(action.getId()))
         if action.getId() in ACTION_CANCEL_DIALOG:      #关闭窗口action
             self._close()       
         elif action.getId() in ACTION_CONTEXT_MENU or action.getId() in ACTION_SHOW_INFO:       #来自上下文菜单或者详情显示的action
@@ -829,17 +879,20 @@ class GUI(xbmcgui.WindowXML):
         #所以是焦点在菜单上，然后发生了方向和鼠标事件？
         elif self.getFocusId() == MENU and action.getId() in (1, 2, 3, 4, 107): 
             #获取菜单上元素的content和type
+            #type的value='movies/tvshows/episodes/musicvideos/artists/albums/songs/livetv/actors/directors/tvactors/tvshowseasons/seasonepisodes/artistalbums/albumsongs/'
+            #见defs.py
             item = self.menu.getSelectedItem().getProperty('type')
             content = self.menu.getSelectedItem().getProperty('content')
             self.menuposition = self.menu.getSelectedPosition()
             #self.menutype不就等于item吗？
             self.menutype = self.menu.getSelectedItem().getProperty('type')  
             #self.oldfocus只记录菜单上的item？ 对，oldfocus在别的地方都复位0，只有在这里有置位。
-            if self.oldfocus and item != self.oldfocus:                 #在item上发生了焦点切换
-                self.oldfocus = item
-                self._update_list(item, content)                        #这句的目的是什么？？？
-            else:       #内容控件第一次获取焦点？
-                self.oldfocus = item
+            #之前指定了type，且跟当前的type不一样
+            if self.oldfocus and item != self.oldfocus:                 
+                self.oldfocus = item        #记录当前type为oldfocus
+                self._update_list(item, content)       #以当前type调用_update_list()。发生了type切换。
+            else:       #之前未指定type或之前的type跟当前type一样
+                self.oldfocus = item        #记录当前type为oldfocus
 
     #关闭当前窗口？.
     def _close(self):

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <window>
+	<!--系统内置的view id. 50=list, 51=infowall, 52=thumbnail.-->
 	<views>50,51</views>
 	<animation effect="fade" time="400">WindowOpen</animation>
 	<animation effect="fade" time="400">WindowClose</animation>
@@ -9,7 +10,7 @@
 			<left>0</left>
 			<top>0</top>
 			<width>1920</width>
-			<height>1080</height>
+			<height>1080</height> 
 			<aspectratio>scale</aspectratio>
 			<texture colordiffuse="FF0E597E">globalsearch-background.jpg</texture>
 		</control>
@@ -35,15 +36,16 @@
 			<animation effect="fade" time="400">Visible</animation>
 			<animation effect="fade" time="400">Hidden</animation>
 		</control>
-		<!--左边PANEL，好像不是，是全局面板？--> 
-		<!--这个group没有指定l.t和宽高，所以是继承了整个window的l.t和宽高？-->
+		<!--全局面板，包括了左中右三个PANEL。但不包括编码信息和时间等浮层UI--> 
+		<!--这个group没有指定l.t和宽高，所以是继承了整个window的l.t和宽高-->
+		<!--是否真的需要这块全局大面板？先保留-->
 		<control type="group">
-			<visible>![Window.IsVisible(DialogVideoInfo.xml) | Window.IsVisible(DialogMusicInfo.xml)]</visible>
+			<!--<visible>![Window.IsVisible(DialogVideoInfo.xml) | Window.IsVisible(DialogMusicInfo.xml)]</visible>-->
 			<!--左边面板的底图-->
 			<control type="image">
 				<left>-5</left>
 				<top>-5</top>
-				<!--宽度，如果跟高度一样的算法，实际是到462？-->
+				<!--宽度，如果跟高度一样的算法，实际是到462？是的-->
 				<width>472</width>
 				<!--高度，上下都超过满高5个像素-->
 				<height>1090</height>
@@ -55,24 +57,6 @@
 			<!--这个group也没有指定l.t和宽高，所以也是继承了整个window的l.t和宽高？-->
 			<control type="group">
 				<animation effect="slide" end="0,-115" time="300" tween="sine" easing="inout" condition="Window.IsVisible(DialogVideoInfo.xml) | Window.IsVisible(DialogMusicInfo.xml)">conditional</animation>
-				<!--下面两个header去掉，好像对布局没有影响？-->
-				<!--全宽度顶部横幅，top=0顶天。高度115-->
-				<control type="image">
-					<left>0</left>
-					<top>0</top>
-					<width>1920</width>
-					<height>115</height>
-					<texture>globalsearch-header.png</texture>
-				</control>
-				<!--全宽度底部横幅，高度115. 965+115=1080，已经到底。-->
-				<!--这两个横幅之间，留了850的空间-->
-				<control type="image">
-					<left>0</left>
-					<top>965</top>
-					<width>1920</width>
-					<height>115</height>
-					<texture flipy="true">globalsearch-header.png</texture>
-				</control>
 				<!--左面板顶部LOGO横幅GROUP--> 
 				<!--这个group指定了l.t-->
 				<control type="group">
@@ -100,25 +84,11 @@
 			<control type="group">
 				<!--test, 65改成86-->
 				<top>86</top>
-				<!--蓝色的小圆贴片-->
-				<control type="image">
-					<!--test, left从333改成350-->
-					<left>350</left>
-					<!--test, top从1改成0-->
-					<!--<top>0</top>-->
-					<!--test, 宽高都从118改成84-->
-					<width>84</width>
-					<height>84</height>
-					<!--test, 增加缩放-->
-					<aspectratio>scale</aspectratio>
-					<texture colordiffuse="FF12A0C7">globalsearch-roundbutton.png</texture>
-					<!--id=990为隐藏的搜索按钮-->
-					<visible>Control.HasFocus(990)</visible>
-				</control>
 				<!--搜索放大镜BUTTON 1, 没有焦点时的image--> 
 				<!--colordiffuse为颜色渲染值，AARRGGBB-->
 				<control type="image">
-					<left>372</left>
+					<!--left从372改成20-->
+					<left>20</left>
 					<!--test, top从40改成22-->
 					<top>22</top>
 					<width>40</width>
@@ -129,7 +99,8 @@
 				<!--搜索放大镜BUTTON 2，有焦点时的image。--> 
 				<!--有两个放大镜的目的，是焦点获得后显示不同的颜色和背景？--> 
 				<control type="image">
-					<left>372</left>
+					<!--left从372改成20-->
+					<left>20</left>
 					<!--test, top从40改成22-->
 					<top>22</top>
 					<width>40</width>
@@ -165,31 +136,31 @@
 						<label></label>
 					</control>
 				</control>
-				<!--BUTTON，32299的字符串值是”新搜索“--> 
-				<!--这个BUTTON实际是一个隐藏的长条！-->
-				<!--BUTTON的高度下沿为185（65+120）-->
-				<control type="button" id="990">
-					<!--test, left从77改成0-->
-					<left>0</left>
+				<!--BUTTON改成TEXT-->
+				<control type="edit" id="990">
+					<description>Search Text</description>
+					<!--左边留出放大镜的空间-->
+					<left>60</left>
 					<top>0</top>
-					<!--宽从500改成462-->
-					<width>462</width>
-					<!--高从120改成84-->
-					<height>120</height>
-					<label>32299</label>
+					<width>400</width>
+					<!--之前没有指定height，所以这个值就从父亲继承了，占满了整个父亲的空间-->
+					<height>84</height>
+					<visible>true</visible>
 					<align>left</align>
 					<aligny>center</aligny>
+					<!--label是edit左边的文本hint，不需要-->
+					<!--<label>Search</label>-->
+					<hinttext>Input your search...</hinttext>
 					<font>font14</font>
-					<texturefocus></texturefocus>
-					<texturenofocus></texturenofocus>
-					<!--指定当用户按“上”方向后应该移动到的控件ID-->
-					<onup>SetFocus(9000,99,absolute)</onup>
-					<!--指定当用户按“下”方向后应该移动到的控件ID-->
-					<ondown>2</ondown>
-					<!--指定当用户按“左”方向后应该移动到的控件ID-->
-					<onleft>500</onleft>
-					<onright>500</onright>
+					<textoffsetx>10</textoffsetx>
+					<textcolor>FFB2D4F5</textcolor>
+					<disabledcolor>FF000000</disabledcolor>
+					<invalidcolor>FFFFFFFF</invalidcolor>
+					<texturefocus>button-focus.png</texturefocus>
+					<texturenofocus>button-nofocus.png</texturenofocus>
+					<pulseonselect>no</pulseonselect>
 				</control>
+
 			</control>
 			<!--视图和媒体两个邻接的区块GROUP-->
 			<control type="group">
@@ -223,6 +194,7 @@
 					<texturenofocus></texturenofocus>
 					<texturefocus colordiffuse="FF12A0C7">globalsearch-focus.png</texturefocus>
 					<onup>990</onup>
+					<!--向下切换出是焦点到分类列表，即左面板下跳一格-->
 					<ondown>SetFocus(9000,0,absolute)</ondown>
 					<onleft>50</onleft>
 					<onright>50</onright>
@@ -231,7 +203,7 @@
 				</control>
 				<!--左面板蓝色的”媒体“LABEL-->
 				<!--$LOCALIZE[14211]="Media"-->
-				<control type="label">
+				<control type="label" id="992">
 					<left>0</left>
 					<top>220</top>
 					<width>462</width>
@@ -355,6 +327,8 @@
 				<!--一个item高度为360，刚刚好放两个？？？-->
 				<height>720</height>
 				<!--用户遥控器左方向键移动出当前控件，移动到ID=9000的控件。支持移动到group，则焦点到之前定位的group内控件-->
+				<!--id=9000的是左面板的搜索结果分类列表-->
+				<!--所以向左切换出内容panel，焦点是到分类列表上。向左切出的意思是已经到了最左边的item再按左键-->
 				<onleft>9000</onleft>
 				<viewtype label="536">icon</viewtype>
 				<preloaditems>4</preloaditems>
@@ -1230,6 +1204,7 @@
 				<top>200</top>
 				<width>1038</width>
 				<height>700</height>
+				<!--跟图标模式的内容panel一样，向左切换出是焦点到分类列表上-->
 				<onleft>9000</onleft>
 				<!--默认的排列模式？-->
 				<viewtype label="535">biglist</viewtype>

@@ -13,10 +13,13 @@ ACTION_CANCEL_DIALOG = (9, 10, 92, 216, 247, 257, 275, 61467, 61448,)
 ACTION_CONTEXT_MENU = (117,)
 ACTION_SHOW_INFO = (11,)
 
-SEARCHBUTTON = 990      #搜索按钮
+#SEARCHBUTTON = 990      #搜索按钮
+INPUTTEXT = 990         #搜索输入编辑框
 SEARCHCATEGORY = 991    #搜索结果分类
+LABEL_MEDIA = 992       #媒体LABEL
 NORESULTS = 999         #无结果label
 MENU = 9000
+
 
 MOVIELABELS = ["genre", "country", "year", "top250", "setid", "rating", "userrating", "playcount", "director", "mpaa", "plot", "plotoutline", "title", "originaltitle", "sorttitle",
                "runtime", "studio", "tagline", "writer", "premiered", "set", "imdbnumber", "lastplayed", "votes", "trailer", "dateadded", "streamdetails", "art", "file", "resume"]
