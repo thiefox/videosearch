@@ -24,7 +24,7 @@ class GUI(xbmcgui.WindowXML):
     #查询数据和加载
     #self._new_search()的最后也会调用这个OnInit
     def onInit(self):
-        self.clearList()    #已有list数据清除（存在的话）
+        self.clearList()    #调用内置数据清除函数
         self._hide_controls()
         log('script version %s started' % ADDONVERSION)
         log('video search window onInit...')
@@ -37,6 +37,7 @@ class GUI(xbmcgui.WindowXML):
         #搜索字符串标准化
         self.searchstring = self._clean_string(self.searchstring).strip()
         if self.searchstring == '':
+            log('call self._close()...')
             self._close()
         else:
             self.window_id = xbmcgui.getCurrentWindowId()       #自身的WINDOW ID
@@ -51,7 +52,7 @@ class GUI(xbmcgui.WindowXML):
                 self._load_favourites()     #载入收藏夹数据
             self._reset_variables()
             self._init_items()      #成员变量复位
-            self.menu.reset()
+            self.menu.reset()       #清除媒体分类LIST的所有ITEM
             self._set_view()        #设置视图模式
             self._fetch_items()
     #把三个主要的控件（搜索BUTTON, 搜索结果分类GROUP，无结果LABEL）都设置为不可见
@@ -101,7 +102,8 @@ class GUI(xbmcgui.WindowXML):
     #内容清除，状态复位
     def _init_items(self):
         self.Player = MyPlayer()    #创建一个播放器实例
-        self.menu = self.getControl(MENU)       #左面板的媒体分类菜单？？？
+        #MENU其实是左面板的媒体分类LIST，如电影25项，音乐47项。
+        self.menu = self.getControl(MENU)       
         self.content = {} 
         #oldfocus只跟菜单状态相关，每次menu.reset()时，oldfocus都会紧接着复位0
         #当在菜单上发生（方向盘）action（上/下/左/右）时，oldfocus会改变。
@@ -114,6 +116,20 @@ class GUI(xbmcgui.WindowXML):
         vid = ADDON.getSettingInt('view')
         # kodi bug: need to call Container.SetViewMode twice
         xbmc.executebuiltin('Container.SetViewMode(%i)' % vid)
+
+    #搜索所有的视频媒体
+    def _fetch_video_items(self) :
+        SEARCH_ITEMS = ['movies', 'tvshows', ]
+        SEARCH_ITEMS = ['movies', ]
+        self.level = 1
+        cats = []
+        for SI in SEARCH_ITEMS :
+            if SI in CATEGORIES :
+                self._get_items(CATEGORIES[SI], self.searchstring)
+                cats.append(CATEGORIES[SI])
+        self.history[self.level] = {'cats':cats, 'search':self.searchstring}
+        #self._check_focus()
+        return
 
     #对各个需要的分类媒体进行搜索
     #每次从KODI获取数据前，level都会复位成1.
@@ -129,6 +145,7 @@ class GUI(xbmcgui.WindowXML):
             if CATEGORIES[key]['enabled']:      #key为movies/tvshows/episodes etc... enabled意思是这个分类需要搜索？
                 self._get_items(CATEGORIES[key], self.searchstring)     #内部会调用self.addItems保存搜索结果
                 cats.append(CATEGORIES[key])
+        #history是个字典，key是level, value又是个包括两项的字典，搜索串和分类结果列表
         self.history[self.level] = {'cats':cats, 'search':self.searchstring}        #self.level的值不变的？
         self._check_focus()
 
@@ -137,6 +154,8 @@ class GUI(xbmcgui.WindowXML):
     #内部调用self.addItems加入元素
     #addItems是父类windowXML的内置成员函数
     #外部进入新的搜索和内部的nav都会触发_get_items()
+    #cat: 媒介字典，包含媒介的元元素
+    #search: 搜索串
     def _get_items(self, cat, search):
         if cat['content'] == 'livetv':      #电视直播？
             self._fetch_channelgroups(cat)
@@ -147,9 +166,12 @@ class GUI(xbmcgui.WindowXML):
         else:                               #电影或音乐？
             rule = cat['rule'].format(query = search)
         #分类搜索结果
-        self.getControl(SEARCHCATEGORY).setLabel(xbmc.getLocalizedString(cat['label']))     #当前cat分类可见，比如”电影“
-        self.getControl(SEARCHCATEGORY).setVisible(True)        #整个控件确保visible
+        #to do : 注释掉下面两行
+        #self.getControl(SEARCHCATEGORY).setLabel(xbmc.getLocalizedString(cat['label']))     #当前cat分类可见，比如”电影“
+        #self.getControl(SEARCHCATEGORY).setVisible(True)        #整个控件确保visible
         #调用kodi的json rpc来获取电影信息？
+        query_str = '{"jsonrpc":"2.0", "method":"%s", "params":{"properties":%s, "sort":{"method":"%s"}, %s}, "id": 1}' % (cat['method'], json.dumps(cat['properties']), cat['sort'], rule)
+        log('JSONRPC QUERY={}'.format(query_str))
         json_query = xbmc.executeJSONRPC('{"jsonrpc":"2.0", "method":"%s", "params":{"properties":%s, "sort":{"method":"%s"}, %s}, "id": 1}' % (cat['method'], json.dumps(cat['properties']), cat['sort'], rule))
         json_response = json.loads(json_query)
         listitems = []      #搜索结果items列表
@@ -272,9 +294,10 @@ class GUI(xbmcgui.WindowXML):
             elif cat['type'] == 'directors':
                 menuitem.setProperty('content', 'directors')
             #menuitem有content属性和type属性。
-            self.menu.addItem(menuitem)     #加入到menu
+            #在媒体分类LIST加入一个新的媒体分类
+            self.menu.addItem(menuitem)     
             if self.navback:                #有上一页？self.navback什么时候被置位？
-                self.menu.selectItem(self.history[self.level]['menuposition'])
+                self.menu.selectItem(self.history[self.level]['menuposition'])      #选中之前的选中分类？
             self.content[cat['type']] = listitems
             if self.navback and self.focusset == 'false':
                 if self.history[self.level]['menutype'] == cat['type']:
@@ -300,7 +323,8 @@ class GUI(xbmcgui.WindowXML):
                 self.addItems(listitems)
                 # wait for items to be added before we can set focus
                 xbmc.sleep(100)
-                self.setFocusId(self.getCurrentContainerId())
+                #to do : 不改变焦点
+                #self.setFocusId(self.getCurrentContainerId())
                 self.menutype = cat['type']
                 self.focusset = 'true'                  #focusset标志置位TRUE
     #搜索流媒体频道组？
@@ -371,7 +395,8 @@ class GUI(xbmcgui.WindowXML):
             menuitem.setArt({'icon':cat['menuthumb']})
             menuitem.setProperty('type', cat['type'])
             menuitem.setProperty('content', cat['content'])
-            self.menu.addItem(menuitem)         #加入到menu
+            #在媒体分类LIST里增加一个item，item的主要属性为type和content
+            self.menu.addItem(menuitem)
             #什么意思？self.content是一个不同内容分类的暂存器？
             #type会取得类型字符串，比如“movies/tvshows”
             #所以意思是设置当前的内容类型
@@ -516,7 +541,7 @@ class GUI(xbmcgui.WindowXML):
         self._hide_controls()
         #数据清除
         self.clearList()
-        #菜单复位
+        #清除所有媒体分类列表item
         self.menu.reset()
         self.oldfocus = 0
         self.level += 1         #这个level起什么作用？
@@ -595,6 +620,7 @@ class GUI(xbmcgui.WindowXML):
                 xbmc.executeJSONRPC('{"jsonrpc":"2.0", "method":"Player.Open", "params":{"item":{"%s":%d}}, "id":1}' % (key, int(value)))
 
     #搜索无结果后的处理？应该是一次数据fetch完成后的处理。根据fetch结果决定后续的动作。
+    #这个函数的目的是数据fetch后焦点的定位？
     def _check_focus(self):
         self.getControl(SEARCHCATEGORY).setVisible(False)   #搜索的分类结果控件隐藏
         #self.getControl(SEARCHBUTTON).setVisible(True)      #搜索BUTTON显示
@@ -603,7 +629,7 @@ class GUI(xbmcgui.WindowXML):
             self.getControl(NORESULTS).setVisible(True)     #搜索无结果LABEL显示
             #self.setFocus(self.getControl(SEARCHBUTTON))    #焦点放在搜索BUTTON上
             self.setFocus(self.getControl(INPUTTEXT))
-            return      #测试为什么还是会弹出输入框
+            return      #to do : 测试为什么还是会弹出输入框
             dialog = xbmcgui.Dialog()
             #284="No results found"
             #LANGUAGE(32298)="Search again?"
@@ -739,7 +765,8 @@ class GUI(xbmcgui.WindowXML):
         self._reset_variables()     #focusset=false
         self._hide_controls()       #隐藏所有控件
         self.clearList()            #清除数据
-        self.menu.reset()           #菜单复位
+        #清除所有媒体分类list的item
+        self.menu.reset()
         self.oldfocus = 0
         #所以self.level保存的是上一级（的搜索串和媒体类型）？
         #是这样的，在调用_nav_back之前已经对level做了-1处理
@@ -753,6 +780,30 @@ class GUI(xbmcgui.WindowXML):
 
     #由edit控件启动的数据刷新
     def _data_refresh(self) :
+        self.clearList()    #调用内置数据清除函数
+        #self._hide_controls()  #控件全部隐藏没有必要
+        self.nextsearch = False
+        self.navback = False
+        #翻页历史还是操作历史
+        #history字典的key是level, value又是一个字典，字典有两个key, cats和searchstring，value为对应的值。
+        self.history = {}       
+        self.menuposition = 0       #这个menu即是左面板的媒体分类LIST
+        #搜索字符串标准化
+        self.searchstring = self._clean_string(self.searchstring).strip()
+        log('_data_refresh, ss={}'.format(self.searchstring))
+        if self.searchstring == '':
+            #self._close()
+            return
+        else:
+            self.window_id = xbmcgui.getCurrentWindowId()       #自身的WINDOW ID
+            #search string作为属性给窗口
+            xbmcgui.Window(self.window_id).setProperty('GlobalSearch.SearchString', self.searchstring)
+            self._reset_variables()
+            self._init_items()      #成员变量复位
+            self.menu.reset()       #清除媒体分类LIST的所有ITEM
+            #self._set_view()        #设置视图模式
+            self._fetch_video_items()
+            self.setFocus(self.getControl(INPUTTEXT))
         return
 
     #开始新搜索
@@ -764,17 +815,23 @@ class GUI(xbmcgui.WindowXML):
         keyboard.doModal()
         if(keyboard.isConfirmed()):
             self.searchstring = keyboard.getText()      #获取输入对话框的文本
-            self.menu.reset()       #菜单复位
+            #清除所有媒体分类LIST的item
+            self.menu.reset()
             self.oldfocus = 0       #oldfocus是个什么东西？
-            self.clearList()        #数据清除
+            self.clearList()        #调用内置数据清除函数
             self.onInit()           #数据查询和加载
 
     #从编辑框启动的新搜索
     def _new_search_ex(self) :
         self.searchstring = self.getControl(INPUTTEXT).getText()
         log('_new_search_ex calling, text={}'.format(self.searchstring))
+        xbmc.sleep(100)
+        self._data_refresh()
+        return
+
         #txt = self.getControl(LABEL_MEDIA).getLabel() + 'a'
         #self.getControl(LABEL_MEDIA).setLabel(txt)
+        #清除所有媒体分类LIST的item
         self.menu.reset()
         self.oldfocus = 0
         self.clearList()
@@ -839,6 +896,7 @@ class GUI(xbmcgui.WindowXML):
                 self._get_allitems('directormovies', listitem)
         elif controlId == MENU:         #菜单的click事件(要看一下这个是什么菜单？)
             log('Menu be clicked')
+            #取得媒体分类LIST当前选中ITEM的type和content（type和content的区别见defs.py）
             item = self.menu.getSelectedItem().getProperty('type')
             content = self.menu.getSelectedItem().getProperty('content')
             self.menuposition = self.menu.getSelectedPosition()
@@ -856,8 +914,15 @@ class GUI(xbmcgui.WindowXML):
     #所以action可以理解为遥控器上的动作？
     def onAction(self, action):
         log('onAction event, actionID={}'.format(action.getId()))
+        controlId = self.getFocusId()           #当前焦点所在的控件
+        log('current focus id={}'.format(controlId))
+        cur_text = self.getControl(INPUTTEXT).getText()
+        log('current input edit={}'.format(cur_text))
         if action.getId() in ACTION_CANCEL_DIALOG:      #关闭窗口action
-            self._close()       
+            controlId = self.getFocusId()           #当前焦点所在的控件
+            if controlId != INPUTTEXT :             #焦点不在EDIT上
+                log('call self._close()...')
+                self._close()       
         elif action.getId() in ACTION_CONTEXT_MENU or action.getId() in ACTION_SHOW_INFO:       #来自上下文菜单或者详情显示的action
             controlId = self.getFocusId()           #当前焦点所在的控件
             if controlId == self.getCurrentContainerId():       #当前焦点所在的控件为内容控件
@@ -878,7 +943,7 @@ class GUI(xbmcgui.WindowXML):
         #ACTION_MOUSE_MOVE = 107(鼠标移动action是什么，总不是rollover吧)
         #所以是焦点在菜单上，然后发生了方向和鼠标事件？
         elif self.getFocusId() == MENU and action.getId() in (1, 2, 3, 4, 107): 
-            #获取菜单上元素的content和type
+            #获取媒体分类LIST当前选中ITEM的content和type
             #type的value='movies/tvshows/episodes/musicvideos/artists/albums/songs/livetv/actors/directors/tvactors/tvshowseasons/seasonepisodes/artistalbums/albumsongs/'
             #见defs.py
             item = self.menu.getSelectedItem().getProperty('type')
@@ -896,6 +961,7 @@ class GUI(xbmcgui.WindowXML):
 
     #关闭当前窗口？.
     def _close(self):
+        log('start self._close()...')
         ADDON.setSettingInt('view', self.getCurrentContainerId())       #这句什么意思？当前容器ID保存？
         xbmcgui.Window(self.window_id).clearProperty('GlobalSearch.SearchString')   #清除搜索串属性
         self.close()            #物理关闭窗口？

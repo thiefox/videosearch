@@ -19,7 +19,8 @@ SEARCHCATEGORY = 991    #搜索结果分类
 LABEL_MEDIA = 992       #媒体LABEL
 NORESULTS = 999         #无结果label
 MENU = 9000
-
+#ID=50, ICON模式的数据panel
+#ID=51, 列表模式的数据LIST
 
 MOVIELABELS = ["genre", "country", "year", "top250", "setid", "rating", "userrating", "playcount", "director", "mpaa", "plot", "plotoutline", "title", "originaltitle", "sorttitle",
                "runtime", "studio", "tagline", "writer", "premiered", "set", "imdbnumber", "lastplayed", "votes", "trailer", "dateadded", "streamdetails", "art", "file", "resume"]
@@ -55,8 +56,10 @@ CATEGORIES = {
                         'content':'movies',
                         'method':'VideoLibrary.GetMovies',
                         'properties':MOVIELABELS,
-                        'sort':'title',
-                        'rule':'"filter":{{"or":[{{"field":"title", "operator":"contains", "value":"{query}"}}, {{"field":"originaltitle", "operator":"contains", "value":"{query}"}}]}}',
+                        #'sort':'title',
+                        'sort':'sorttitle',
+                        #'rule':'"filter":{{"or":[{{"field":"title", "operator":"contains", "value":"{query}"}}, {{"field":"originaltitle", "operator":"contains", "value":"{query}"}}]}}',
+                        'rule':'"filter":{{"field":"outline", "operator":"is", "value":"{query}"}}',
                         'streamdetails':True,
                         'label':342,
                         'icon':'DefaultVideo.png',
